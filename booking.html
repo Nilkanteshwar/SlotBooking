@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Slot Booking System - Book a Slot</title>
+</head>
+<body>
+  <h1>Book a Slot</h1>
+  <form>
+    <input type="text" id="name" placeholder="Name" required>
+    <input type="text" id="company" placeholder="Company Name" required>
+    <input type="date" id="booking-date" required>
+    <input type="time" id="start-time" required>
+    <input type="time" id="end-time" required>
+    <button type="button" onclick="bookSlot()">Book Slot</button>
+
+   
+    <div id="edit-form" style="display: none;">
+        <input type="text" id="edit-name" placeholder="Name">
+        <input type="text" id="edit-company" placeholder="Company Name">
+        <input type="date" id="edit-date">
+        <input type="time" id="edit-start-time">
+        <input type="time" id="edit-end-time">
+        <button onclick="updateSlot()">Update Slot</button>
+    </div>
+
+  </form>
+  <a href="index.html">Back to Home</a>
+  <script src="https://www.gstatic.com/firebasejs/8.2.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.2.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.2.1/firebase-firestore.js"></script>
+
+  <script src="script.js"></script>
+</body>
+</html>
