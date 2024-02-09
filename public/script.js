@@ -42,7 +42,7 @@ function signup() {
                             })
                                 .then((docRef) => {
                                     alert('Sign up successful! Please login.');
-                                    window.location.href = "login.html"; // Redirect to login page
+                                    window.location.href = "index.html"; // Redirect to login page
                                 })
                                 .catch((error) => {
                                     console.error("Error adding document: ", error);
@@ -123,8 +123,9 @@ function fetchSlots() {
                         <td>${slotData.endTime}</td>
                         <td>${getAMPM(slotData.startTime)} - ${getAMPM(slotData.endTime)}</td>
                         <td>
-                            <button onclick="editSlot('${doc.id}', '${slotData.name}', '${slotData.company}', '${slotData.date}', '${slotData.startTime}', '${slotData.endTime}')">Edit</button>
-                            <button onclick="deleteSlot('${doc.id}')">Delete</button>
+                            <button class="btn btn-info" onclick="editSlot('${doc.id}', '${slotData.name}', '${slotData.company}', '${slotData.date}', '${slotData.startTime}', '${slotData.endTime}')">Edit</button>
+                            <button  class="btn btn-danger"  onclick="deleteSlot('${doc.id}')">Delete</button>
+                    
                         </td>
                     </tr>
                 `;
@@ -202,3 +203,32 @@ function getAMPM(timeString) {
         return 'PM';
     }
 }
+$(document).ready(function() {
+    $(".btn").click(function() {
+      $(".form-signin").toggleClass("form-signin-left");
+      $(".form-signup").toggleClass("form-signup-left");
+      $(".frame").toggleClass("frame-long");
+      $(".signup-inactive").toggleClass("signup-active");
+      $(".signin-active").toggleClass("signin-inactive");
+      $(".forgot").toggleClass("forgot-left");   
+      $(this).removeClass("idle").addClass("active");
+    });
+  
+    $(".btn-signup").click(function() {
+      $(".nav").toggleClass("nav-up");
+      $(".form-signup-left").toggleClass("form-signup-down");
+      $(".success").toggleClass("success-left"); 
+      $(".frame").toggleClass("frame-short");
+    });
+  
+    $(".btn-signin").click(function() {
+      $(".btn-animate").toggleClass("btn-animate-grow");
+      $(".welcome").toggleClass("welcome-left");
+      $(".cover-photo").toggleClass("cover-photo-down");
+      $(".frame").toggleClass("frame-short");
+      $(".profile-photo").toggleClass("profile-photo-down");
+      $(".btn-goback").toggleClass("btn-goback-up");
+      $(".forgot").toggleClass("forgot-fade");
+    });
+  });
+  
