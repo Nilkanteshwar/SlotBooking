@@ -88,26 +88,96 @@ function bookSlot() {
     const startTime = document.getElementById('start-time').value;
     const endTime = document.getElementById('end-time').value;
 
-    // Save booking data to Firestore
-    db.collection("bookings").add({
-        name: name,
-        company: company,
-        date: date,
-        startTime: startTime,
-        endTime: endTime
-    })
-        .then((docRef) => {
-            alert('Slot booked successfully!');
-            window.location.href = "bookings.html"; // Redirect to bookings page
+    // Check if the slot overlaps with existing bookings
+    db.collection("bookings")
+        .where('date', '==', date)
+        .get()
+        .then((querySnapshot) => {
+            let overlap = false;
+            querySnapshot.forEach((doc) => {
+                const slotData = doc.data();
+                if (startTime < slotData.endTime && endTime > slotData.startTime) {
+                    overlap = true;
+                }
+            });
+            if (overlap) {
+                alert('Slot overlaps with existing booking. Please choose a different time.');
+            } else {
+                // Save booking data to Firestore
+                db.collection("bookings").add({
+                    name: name,
+                    company: company,
+                    date: date,
+                    startTime: startTime,
+                    endTime: endTime
+                })
+                .then((docRef) => {
+                    alert('Slot booked successfully!');
+                    fetchSlots(); // Refresh the slot table after booking
+                })
+                .catch((error) => {
+                    console.error("Error adding document: ", error);
+                });
+            }
         })
         .catch((error) => {
-            console.error("Error adding document: ", error);
+            console.log("Error checking existing bookings: ", error);
         });
 }
 
+
 // Function to fetch and display booked slots
-function fetchSlots() {
-    db.collection("bookings").get()
+// function fetchSlots() {
+//     db.collection("bookings").get()
+//         .then((querySnapshot) => {
+//             const slotTableBody = document.getElementById('slot-table-body');
+//             slotTableBody.innerHTML = ''; // Clear existing rows
+
+//             const currentDate = new Date(); // Get current date and time
+
+//             querySnapshot.forEach((doc) => {
+//                 const slotData = doc.data();
+//                 const startTime12Hour = convertTo12HourFormat(slotData.startTime);
+//                 const endTime12Hour = convertTo12HourFormat(slotData.endTime);
+
+//                 // Check if the slot is overdue
+//                 const slotDateTime = new Date(`${slotData.date}T${slotData.endTime}`);
+//                 const overdueClass = (slotDateTime < currentDate) ? 'overdue' : '';
+
+//                 const slotRow = `
+//                     <tr class="${overdueClass}">
+//                         <td>${slotData.name}</td>
+//                         <td>${slotData.company}</td>
+//                         <td>${slotData.date}</td>
+//                         <td>${startTime12Hour}</td>
+//                         <td>${endTime12Hour}</td>
+//                         <td>${startTime12Hour} - ${endTime12Hour}</td>
+//                         <td>
+//                             <button class="btn btn-info" onclick="editSlot('${doc.id}', '${slotData.name}', '${slotData.company}', '${slotData.date}', '${slotData.startTime}', '${slotData.endTime}')">Edit</button>
+//                             <button class="btn btn-danger" onclick="deleteSlot('${doc.id}')">Delete</button>
+//                         </td>
+//                     </tr>
+//                 `;
+//                 slotTableBody.innerHTML += slotRow;
+//             });
+//         })
+//         .catch((error) => {
+//             console.log("Error getting slot data: ", error);
+//         });
+// }
+// Function to fetch and display booked slots
+// Function to fetch and display booked slots
+function fetchSlots(orderByAscending = true) {
+    let query = db.collection("bookings");
+    
+    // Order by startTime in ascending or descending order
+    if (orderByAscending) {
+        query = query.orderBy("startTime", "asc");
+    } else {
+        query = query.orderBy("startTime", "desc");
+    }
+
+    query.get()
         .then((querySnapshot) => {
             const slotTableBody = document.getElementById('slot-table-body');
             slotTableBody.innerHTML = ''; // Clear existing rows
@@ -137,6 +207,8 @@ function fetchSlots() {
         });
 }
 
+
+
 // Function to edit a slot
 function editSlot(slotId, name, company, date, startTime, endTime) {
     // Populate the form fields with existing slot details
@@ -162,23 +234,50 @@ function updateSlot() {
     const startTime = document.getElementById('edit-start-time').value;
     const endTime = document.getElementById('edit-end-time').value;
 
-    // Update slot details in Firestore
-    db.collection("bookings").doc(slotId).update({
-        name: name,
-        company: company,
-        date: date,
-        startTime: startTime,
-        endTime: endTime
-    })
-    .then(() => {
-        alert("Slot updated successfully!");
-        fetchSlots(); // Refresh the slot table after updating
-        document.getElementById('edit-form').style.display = 'none'; // Hide the edit form
-    })
-    .catch((error) => {
-        console.error("Error updating slot: ", error);
-    });
+    // Check if the slot overlaps with existing bookings
+    db.collection("bookings")
+        .where('date', '==', date)
+        .where('startTime', '<', endTime)
+        .where('endTime', '>', startTime)
+        .get()
+        .then((querySnapshot) => {
+            if (!querySnapshot.empty && querySnapshot.docs.some(doc => doc.id !== slotId)) {
+                alert('Slot overlaps with existing booking. Please choose a different time.');
+            } else {
+                // Update slot details in Firestore
+                db.collection("bookings").doc(slotId).update({
+                    name: name,
+                    company: company,
+                    date: date,
+                    startTime: startTime,
+                    endTime: endTime
+                })
+                .then(() => {
+                    alert("Slot updated successfully!");
+                    fetchSlots(); // Refresh the slot table after updating
+                    document.getElementById('edit-form').style.display = 'none'; // Hide the edit form
+                })
+                .catch((error) => {
+                    console.error("Error updating slot: ", error);
+                });
+            }
+        })
+        .catch((error) => {
+            console.log("Error checking existing bookings: ", error);
+        });
 }
+// Function to determine if a time is AM or PM
+function getAMPM(timeString) {
+    const timeParts = timeString.split(":");
+    const hours = parseInt(timeParts[0]);
+    const minutes = parseInt(timeParts[1]);
+    if (hours < 12) {
+        return 'AM';
+    } else {
+        return 'PM';
+    }
+}
+
 
 // Function to delete a slot
 function deleteSlot(slotId) {
@@ -192,43 +291,44 @@ function deleteSlot(slotId) {
         });
 }
 
-// Function to determine if a time is AM or PM
-function getAMPM(timeString) {
-    const timeParts = timeString.split(":");
-    const hours = parseInt(timeParts[0]);
-    const minutes = parseInt(timeParts[1]);
-    if (hours < 12) {
-        return 'AM';
-    } else {
-        return 'PM';
-    }
+// Function to convert time to 12-hour format
+function convertTo12HourFormat(timeString) {
+    const [hours24, minutes] = timeString.split(":").map(Number);
+    const period = hours24 < 12 ? "AM" : "PM";
+    const hours12 = hours24 % 12 || 12;
+    return `${hours12}:${minutes.toString().padStart(2, "0")} ${period}`;
 }
+
 $(document).ready(function() {
     $(".btn").click(function() {
-      $(".form-signin").toggleClass("form-signin-left");
-      $(".form-signup").toggleClass("form-signup-left");
-      $(".frame").toggleClass("frame-long");
-      $(".signup-inactive").toggleClass("signup-active");
-      $(".signin-active").toggleClass("signin-inactive");
-      $(".forgot").toggleClass("forgot-left");   
-      $(this).removeClass("idle").addClass("active");
+        $(".form-signin").toggleClass("form-signin-left");
+        $(".form-signup").toggleClass("form-signup-left");
+        $(".frame").toggleClass("frame-long");
+        $(".signup-inactive").toggleClass("signup-active");
+        $(".signin-active").toggleClass("signin-inactive");
+        $(".forgot").toggleClass("forgot-left");   
+        $(this).removeClass("idle").addClass("active");
     });
-  
+
     $(".btn-signup").click(function() {
-      $(".nav").toggleClass("nav-up");
-      $(".form-signup-left").toggleClass("form-signup-down");
-      $(".success").toggleClass("success-left"); 
-      $(".frame").toggleClass("frame-short");
+        $(".nav").toggleClass("nav-up");
+        $(".form-signup-left").toggleClass("form-signup-down");
+        $(".success").toggleClass("success-left"); 
+        $(".frame").toggleClass("frame-short");
     });
-  
+
     $(".btn-signin").click(function() {
-      $(".btn-animate").toggleClass("btn-animate-grow");
-      $(".welcome").toggleClass("welcome-left");
-      $(".cover-photo").toggleClass("cover-photo-down");
-      $(".frame").toggleClass("frame-short");
-      $(".profile-photo").toggleClass("profile-photo-down");
-      $(".btn-goback").toggleClass("btn-goback-up");
-      $(".forgot").toggleClass("forgot-fade");
+        $(".btn-animate").toggleClass("btn-animate-grow");
+        $(".welcome").toggleClass("welcome-left");
+        $(".cover-photo").toggleClass("cover-photo-down");
+        $(".frame").toggleClass("frame-short");
+        $(".profile-photo").toggleClass("profile-photo-down");
+        $(".btn-goback").toggleClass("btn-goback-up");
+        $(".forgot").toggleClass("forgot-fade");
     });
-  });
-  
+});
+
+// Call the fetchSlots function when the page is loaded
+window.onload = function() {
+    fetchSlots();
+};
